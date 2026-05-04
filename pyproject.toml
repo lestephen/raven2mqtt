@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "raven2mqtt"
+version = "0.1.0"
+description = "Bridge Rainforest RAVEn / EMU-2 serial XML streams to MQTT and Home Assistant discovery"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "Apache-2.0" }
+authors = [
+  { name = "Stephen Lee" }
+]
+dependencies = [
+  "paho-mqtt>=1.6.1",
+  "pyserial>=3.5"
+]
+
+[project.optional-dependencies]
+test = [
+  "pytest>=8.0"
+]
+
+[project.scripts]
+raven2mqtt = "raven2mqtt.__main__:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]

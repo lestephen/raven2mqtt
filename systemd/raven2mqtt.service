@@ -1,0 +1,23 @@
+[Unit]
+Description=Rainforest RAVEn to MQTT bridge
+Documentation=https://github.com/lestephen/raven2mqtt
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=raven2mqtt
+Group=dialout
+ExecStart=/opt/raven2mqtt/.venv/bin/raven2mqtt --config /etc/raven2mqtt.toml run
+Restart=always
+RestartSec=10
+Environment=PYTHONUNBUFFERED=1
+StateDirectory=raven2mqtt
+
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=full
+
+[Install]
+WantedBy=multi-user.target
