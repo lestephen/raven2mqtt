@@ -18,7 +18,12 @@ dogfooding period.
 - Retained MQTT state plus an on-disk state snapshot, so Home Assistant sees
   last-known meter values immediately after a restart.
 - `run`, `discovery-json`, and `parse-stdin` CLI subcommands.
-- systemd unit and udev guidance for an unattended deployment.
+- Official multi-arch Docker image (`ghcr.io/lestephen/raven2mqtt`) with a
+  `docker run` / Compose quickstart, so deployment needs no host Python, venv,
+  udev, or systemd setup.
+- systemd unit and udev guidance for the bare-metal / LXC deployment path.
+- README "Is this for you?" compatibility matrix that states plainly the bridge
+  runs on a separate Linux host and is not installable on Home Assistant OS.
 
 ### Reliability
 

@@ -1,0 +1,19 @@
+# Example Docker Compose deployment for raven2mqtt.
+# Copy raven2mqtt.example.toml to raven2mqtt.toml next to this file, edit it,
+# then: docker compose -f docker-compose.example.yml up -d
+services:
+  raven2mqtt:
+    image: ghcr.io/lestephen/raven2mqtt:latest
+    container_name: raven2mqtt
+    restart: unless-stopped
+    devices:
+      # Adjust the host path to your RAVEn device (commonly /dev/ttyACM0).
+      - /dev/ttyACM0:/dev/ttyACM0
+    volumes:
+      - ./raven2mqtt.toml:/config/raven2mqtt.toml:ro
+      # Optional: persist last-known state across restarts. Requires
+      # [service] state_file = "/data/state.json" in the config.
+      - raven2mqtt-data:/data
+
+volumes:
+  raven2mqtt-data:
