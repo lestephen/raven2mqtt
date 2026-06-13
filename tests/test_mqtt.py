@@ -18,6 +18,7 @@ class FakeClient:
 
     def __init__(self, *args, **kwargs) -> None:
         self.calls: list[str] = []
+        self.publish_payloads: list[tuple] = []
         self.publish_rc = 0
         self.on_connect = None
         self.on_message = None
@@ -59,8 +60,9 @@ class FakeClient:
     def subscribe(self, *_a, **_k) -> None:
         self.calls.append("subscribe")
 
-    def publish(self, *_a, **_k) -> FakeInfo:
+    def publish(self, topic=None, payload=None, *_a, **_k) -> FakeInfo:
         self.calls.append("publish")
+        self.publish_payloads.append((topic, payload))
         return FakeInfo(self.publish_rc)
 
 
@@ -123,6 +125,25 @@ def test_publish_failure_while_connected_logs_warning(fake_paho, caplog) -> None
         publisher.publish("raven2mqtt/emu2/state", "x", retain=True)
     warnings = [r for r in caplog.records if r.levelno >= logging.WARNING]
     assert len(warnings) == 1
+
+
+def test_cached_state_is_republished_on_connect(fake_paho) -> None:
+    # Broker is down at startup: the state publish happens while disconnected,
+    # so it must be re-delivered once the connection is established.
+    publisher = _publisher()
+    publisher.connect()
+    client = fake_paho.instances[-1]
+    publisher.publish_state({"power_kw": 1.234})
+    state_topic = publisher._config.mqtt.state_topic
+
+    published_before = [c for c in client.publish_payloads if c[0] == state_topic]
+    # While disconnected the publish may be dropped by the broker; the bridge
+    # must still re-assert it on connect.
+    publisher._on_connect(client, None, None, 0)
+    published_after = [c for c in client.publish_payloads if c[0] == state_topic]
+
+    assert len(published_after) > len(published_before)
+    assert published_after[-1][1] == '{"power_kw":1.234}'
 
 
 def test_on_disconnect_logs_single_transition(fake_paho, caplog) -> None:

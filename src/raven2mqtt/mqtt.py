@@ -19,6 +19,7 @@ class MqttPublisher:
         self._config = config
         self._client = None
         self._connected = False
+        self._last_state: dict[str, Any] | None = None
         self._ha_status_topic = "homeassistant/status"
 
     def connect(self) -> None:
@@ -85,6 +86,12 @@ class MqttPublisher:
         client.subscribe(self._ha_status_topic)
         self.publish_discovery()
         self.publish_availability(True)
+        # Re-assert the latest retained state on every (re)connect. The initial
+        # publish may have been issued before the async connect completed (or
+        # dropped while the broker was away), so without this Home Assistant
+        # could come back with no last-known meter values until the next frame.
+        if self._last_state is not None:
+            self.publish_state(self._last_state)
 
     def _on_disconnect(self, _client: Any, _userdata: Any, *_args: Any) -> None:
         # paho will auto-reconnect; log the transition once instead of emitting a
@@ -113,6 +120,8 @@ class MqttPublisher:
         )
 
     def publish_state(self, state: dict[str, Any]) -> None:
+        # Remember the latest state so it can be re-asserted on every (re)connect.
+        self._last_state = state
         self.publish(
             self._config.mqtt.state_topic,
             state,
