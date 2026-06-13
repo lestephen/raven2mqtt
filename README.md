@@ -93,13 +93,13 @@ editor /etc/raven2mqtt.toml
 
 Key settings:
 
-- `[serial] device` — path to the RAVEn serial device (`/dev/raven` is a
+- `[serial] device`: path to the RAVEn serial device (`/dev/raven` is a
   recommended udev symlink; see below).
-- `[mqtt]` — broker host, credentials, topic prefix, optional TLS.
-- `[service] state_save_interval_seconds` — throttle for `state.json` disk
+- `[mqtt]`: broker host, credentials, topic prefix, optional TLS.
+- `[service] state_save_interval_seconds`: throttle for `state.json` disk
   writes. The MQTT state topic is published on every meter report regardless;
   this only governs how often the on-disk snapshot is rewritten. Default 60 s.
-- `[device]` — identifiers and default entity prefix used by Home Assistant
+- `[device]`: identifiers and default entity prefix used by Home Assistant
   MQTT discovery.
 
 Render the Home Assistant discovery payload to verify your configuration:
@@ -114,7 +114,7 @@ raven2mqtt --config /etc/raven2mqtt.toml discovery-json
 raven2mqtt --config /etc/raven2mqtt.toml run
 ```
 
-Or as a systemd service — see `systemd/raven2mqtt.service`. The unit expects a
+Or as a systemd service; see `systemd/raven2mqtt.service`. The unit expects a
 `raven2mqtt` user in the `dialout` group and a venv at `/opt/raven2mqtt/.venv`:
 
 ```bash
@@ -130,7 +130,7 @@ systemctl enable --now raven2mqtt
 journalctl -u raven2mqtt -f
 ```
 
-A typical udev rule for a stable `/dev/raven` symlink — adjust the vendor and
+A typical udev rule for a stable `/dev/raven` symlink, adjust the vendor and
 product IDs for your specific RAVEn:
 
 ```

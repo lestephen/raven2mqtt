@@ -52,7 +52,7 @@ class MqttPublisher:
         self._client.on_disconnect = self._on_disconnect
         # Let paho's network loop own the entire connection lifecycle, including
         # the initial connect, and retry with exponential backoff. A broker that
-        # is not yet up at startup must not crash the bridge — the serial reader
+        # is not yet up at startup must not crash the bridge; the serial reader
         # keeps running and publishes resume once the broker appears.
         self._client.reconnect_delay_set(min_delay=1, max_delay=60)
         _LOGGER.info(

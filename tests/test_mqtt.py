@@ -106,7 +106,7 @@ def test_publish_while_disconnected_does_not_log_per_message_warning(fake_paho, 
     publisher = _publisher()
     publisher.connect()
     client = fake_paho.instances[-1]
-    client.publish_rc = 4  # MQTT_ERR_NO_CONN — broker not connected yet
+    client.publish_rc = 4  # MQTT_ERR_NO_CONN (broker not connected yet)
     with caplog.at_level(logging.WARNING, logger="raven2mqtt.mqtt"):
         for _ in range(5):
             publisher.publish("raven2mqtt/emu2/state", "x", retain=True)
