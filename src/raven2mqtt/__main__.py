@@ -8,10 +8,14 @@ import logging
 import sys
 from pathlib import Path
 
-from .config import load_config
+from .config import ConfigError, load_config
 from .discovery import build_device_discovery_payload
 from .parser import RAVEnXmlStreamParser
 from .service import Raven2MqttService
+
+# sysexits.h EX_CONFIG: configuration error. systemd's RestartPreventExitStatus
+# keys off this so a permanent config error stops cleanly instead of looping.
+EX_CONFIG = 78
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -46,8 +50,8 @@ def _parse_stdin() -> int:
     return 0
 
 
-def main() -> int:
-    args = _build_parser().parse_args()
+def main(argv: list[str] | None = None) -> int:
+    args = _build_parser().parse_args(argv)
     logging.basicConfig(
         level=getattr(logging, args.log_level),
         format="%(asctime)s %(levelname)s [%(name)s] %(message)s",
@@ -56,7 +60,11 @@ def main() -> int:
     if args.command == "parse-stdin":
         return _parse_stdin()
 
-    config = load_config(Path(args.config))
+    try:
+        config = load_config(Path(args.config))
+    except ConfigError as err:
+        print(f"error: {err}", file=sys.stderr)
+        return EX_CONFIG
 
     if args.command == "discovery-json":
         print(json.dumps(build_device_discovery_payload(config), indent=2, sort_keys=True))

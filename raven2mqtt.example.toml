@@ -16,7 +16,7 @@ discovery_prefix = "homeassistant"
 retain_state = true
 # Optional TLS. If tls_enabled is true, the broker is contacted over TLS.
 # tls_ca is a path to a PEM-encoded CA bundle (omit to use the system trust store).
-# tls_insecure disables hostname verification — only set this for local self-signed setups.
+# tls_insecure disables hostname verification; only set this for local self-signed setups.
 tls_enabled = false
 tls_ca = ""
 tls_insecure = false

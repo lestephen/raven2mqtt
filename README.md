@@ -1,5 +1,8 @@
 # raven2mqtt
 
+![tests](https://github.com/lestephen/raven2mqtt/actions/workflows/test.yml/badge.svg)
+![python](https://img.shields.io/badge/python-3.11%2B-blue)
+
 Bridge a Rainforest Automation RAVEn / EMU-2 serial device to MQTT and Home
 Assistant MQTT discovery.
 
@@ -9,7 +12,7 @@ restart can reopen the terminal in the middle of an unsolicited XML report.
 This bridge keeps one long-lived serial session outside Home Assistant and
 publishes normalized readings over MQTT.
 
-## Relationship to Home Assistant's built-in integration
+## ⚖️ Relationship to Home Assistant's built-in integration
 
 For many installations, the built-in Home Assistant `rainforest_raven`
 integration is the right first choice: it is simple, supported by Home
@@ -39,7 +42,7 @@ In short: the built-in integration is best when direct serial access is stable.
 `raven2mqtt` is for setups where decoupling serial-terminal handling from Home
 Assistant makes the system easier to operate.
 
-## What this bridge does and does not do
+## ✨ What this bridge does and does not do
 
 `raven2mqtt` is a **passive listener**. It reads whatever XML fragments the
 RAVEn pushes asynchronously and normalizes them. It does not currently send
@@ -60,9 +63,17 @@ If your RAVEn is paired with a meter that does not push `PriceCluster`,
 entities will simply remain `unknown`. This is a meter-side behavior, not a
 parser limitation.
 
-## Install
+## 🚀 Install
 
 Requires Python 3.11+. The runtime dependencies are `paho-mqtt` and `pyserial`.
+
+Install the released version as an isolated CLI with [pipx](https://pipx.pypa.io):
+
+```bash
+pipx install raven2mqtt
+```
+
+Or from source for development:
 
 ```bash
 git clone https://github.com/lestephen/raven2mqtt.git
@@ -73,7 +84,7 @@ pip install -e '.[test]'
 pytest
 ```
 
-## Configure
+## ⚙️ Configure
 
 ```bash
 cp raven2mqtt.example.toml /etc/raven2mqtt.toml
@@ -82,13 +93,13 @@ editor /etc/raven2mqtt.toml
 
 Key settings:
 
-- `[serial] device` — path to the RAVEn serial device (`/dev/raven` is a
+- `[serial] device`: path to the RAVEn serial device (`/dev/raven` is a
   recommended udev symlink; see below).
-- `[mqtt]` — broker host, credentials, topic prefix, optional TLS.
-- `[service] state_save_interval_seconds` — throttle for `state.json` disk
+- `[mqtt]`: broker host, credentials, topic prefix, optional TLS.
+- `[service] state_save_interval_seconds`: throttle for `state.json` disk
   writes. The MQTT state topic is published on every meter report regardless;
   this only governs how often the on-disk snapshot is rewritten. Default 60 s.
-- `[device]` — identifiers and default entity prefix used by Home Assistant
+- `[device]`: identifiers and default entity prefix used by Home Assistant
   MQTT discovery.
 
 Render the Home Assistant discovery payload to verify your configuration:
@@ -97,13 +108,13 @@ Render the Home Assistant discovery payload to verify your configuration:
 raven2mqtt --config /etc/raven2mqtt.toml discovery-json
 ```
 
-## Run
+## ▶️ Run
 
 ```bash
 raven2mqtt --config /etc/raven2mqtt.toml run
 ```
 
-Or as a systemd service — see `systemd/raven2mqtt.service`. The unit expects a
+Or as a systemd service; see `systemd/raven2mqtt.service`. The unit expects a
 `raven2mqtt` user in the `dialout` group and a venv at `/opt/raven2mqtt/.venv`:
 
 ```bash
@@ -119,14 +130,14 @@ systemctl enable --now raven2mqtt
 journalctl -u raven2mqtt -f
 ```
 
-A typical udev rule for a stable `/dev/raven` symlink — adjust the vendor and
+A typical udev rule for a stable `/dev/raven` symlink, adjust the vendor and
 product IDs for your specific RAVEn:
 
 ```
 SUBSYSTEM=="tty", ATTRS{idVendor}=="04b4", ATTRS{idProduct}=="0003", SYMLINK+="raven", GROUP="dialout", MODE="0660"
 ```
 
-## Debugging
+## 🔧 Debugging
 
 Pipe a captured RAVEn stream through the parser without connecting to MQTT:
 
@@ -138,6 +149,6 @@ Each top-level XML frame is printed as a single JSON line containing `tag`,
 `payload`, and the original `raw_xml`. This is useful for diagnosing which
 frames the meter is pushing.
 
-## License
+## 📄 License
 
 Apache-2.0. See [LICENSE](LICENSE) and [NOTICE](NOTICE).
