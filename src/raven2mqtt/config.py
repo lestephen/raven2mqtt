@@ -72,6 +72,10 @@ class AppConfig:
     device: DeviceConfig
 
 
+class ConfigError(Exception):
+    """Raised when the configuration file cannot be read or parsed."""
+
+
 def _section(data: dict, name: str) -> dict:
     section = data.get(name, {})
     if not isinstance(section, dict):
@@ -80,11 +84,18 @@ def _section(data: dict, name: str) -> dict:
 
 
 def load_config(path: Path) -> AppConfig:
-    """Load TOML config from path."""
-    data = tomllib.loads(path.read_text()) if path.exists() else {}
-    return AppConfig(
-        serial=SerialConfig(**_section(data, "serial")),
-        mqtt=MqttConfig(**_section(data, "mqtt")),
-        service=ServiceConfig(**_section(data, "service")),
-        device=DeviceConfig(**_section(data, "device")),
-    )
+    """Load TOML config from path. A missing file falls back to defaults."""
+    try:
+        text = path.read_text() if path.exists() else None
+    except OSError as err:
+        raise ConfigError(f"cannot read config {path}: {err}") from err
+    try:
+        data = tomllib.loads(text) if text is not None else {}
+        return AppConfig(
+            serial=SerialConfig(**_section(data, "serial")),
+            mqtt=MqttConfig(**_section(data, "mqtt")),
+            service=ServiceConfig(**_section(data, "service")),
+            device=DeviceConfig(**_section(data, "device")),
+        )
+    except (tomllib.TOMLDecodeError, ValueError, TypeError) as err:
+        raise ConfigError(f"invalid config {path}: {err}") from err

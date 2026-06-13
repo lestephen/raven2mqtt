@@ -3,14 +3,21 @@ Description=Rainforest RAVEn to MQTT bridge
 Documentation=https://github.com/lestephen/raven2mqtt
 After=network-online.target
 Wants=network-online.target
+# Give up after repeated rapid failures instead of looping forever.
+StartLimitIntervalSec=300
+StartLimitBurst=5
 
 [Service]
 Type=simple
 User=raven2mqtt
 Group=dialout
 ExecStart=/opt/raven2mqtt/.venv/bin/raven2mqtt --config /etc/raven2mqtt.toml run
-Restart=always
+Restart=on-failure
 RestartSec=10
+# Exit code 78 (EX_CONFIG) means a permanent config error: do not restart, since
+# retrying cannot fix it. The bridge tolerates a broker that is down at startup,
+# so it no longer crash-loops on a broker-not-ready race.
+RestartPreventExitStatus=78
 Environment=PYTHONUNBUFFERED=1
 StateDirectory=raven2mqtt
 
