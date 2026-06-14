@@ -1,0 +1,15 @@
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+*.egg-info/
+build/
+dist/
+
+# Local runtime files that may contain real broker credentials or state
+raven2mqtt.toml
+state.json
+
+# Local tool run artifacts
+.tako/
+scratch/

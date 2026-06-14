@@ -1,0 +1,38 @@
+[serial]
+device = "/dev/raven"
+baudrate = 115200
+read_timeout_seconds = 1.0
+startup_flush_seconds = 3.0
+encoding = "windows-1252"
+
+[mqtt]
+host = "127.0.0.1"
+port = 1883
+username = ""
+password = ""
+client_id = "raven2mqtt-emu2"
+base_topic = "raven2mqtt/emu2"
+discovery_prefix = "homeassistant"
+retain_state = true
+# Optional TLS. If tls_enabled is true, the broker is contacted over TLS.
+# tls_ca is a path to a PEM-encoded CA bundle (omit to use the system trust store).
+# tls_insecure disables hostname verification; only set this for local self-signed setups.
+tls_enabled = false
+tls_ca = ""
+tls_insecure = false
+
+[service]
+state_file = "/var/lib/raven2mqtt/state.json"
+# Throttle disk writes of the persisted state file to at most one write per
+# this many seconds. The MQTT state topic is published on every meter report
+# regardless; this only governs how often state.json is rewritten.
+state_save_interval_seconds = 60
+
+[device]
+id = "emu2"
+name = "Rainforest EMU-2"
+manufacturer = "Rainforest Automation"
+model = "EMU-2"
+serial_number = ""
+sw_version = ""
+default_entity_prefix = "rainforest_emu_2"
