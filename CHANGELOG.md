@@ -4,6 +4,18 @@ All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.2] - 2026-07-09
+
+### Fixed
+
+- The `network_status` diagnostic sensor no longer overwrites a previously
+  reported value with a blank string when a state message omits the field.
+  Because that text sensor has no numeric shape, Home Assistant does not ignore
+  an empty render, so its discovery template now renders `None` (which HA maps
+  to `unknown`) for an absent key. Numeric-shaped sensors keep the empty-string
+  guard that HA ignores. The value-template guard is now chosen per sensor type
+  in `_sensor()`.
+
 ## [0.1.1] - 2026-07-09
 
 ### Fixed

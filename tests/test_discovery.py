@@ -53,20 +53,22 @@ def test_value_templates_tolerate_missing_keys() -> None:
     # ``RavenState.as_dict`` publishes only the fields seen so far, so any key
     # can be absent from a given state message: optional fields the meter never
     # emits (price / network / current-period) and even core fields during the
-    # startup window before their first frame arrives. Every value template must
-    # render to an empty string for an absent key instead of raising the
-    # "'dict object' has no attribute ..." warning.
+    # startup window before their first frame arrives. No value template may
+    # raise the "'dict object' has no attribute ..." warning on an absent key.
     payload = build_device_discovery_payload(_config())
 
-    # Absent everywhere: an empty payload must never raise for any component.
     for name, component in payload["cmps"].items():
         rendered = _render(component["value_template"], {})
-        assert rendered == "", (name, rendered)
-        # An empty string is only safely ignored by HA for numeric-shaped
-        # sensors; the sole non-numeric component is the network_status
-        # diagnostic text sensor, for which an empty state is benign.
-        if not NUMERIC_SHAPE.intersection(component):
+        if NUMERIC_SHAPE.intersection(component):
+            # HA ignores an empty render for numeric-shaped sensors, so an
+            # absent key leaves the entity unchanged.
+            assert rendered == "", (name, rendered)
+        else:
+            # HA does not ignore an empty render for text sensors, so an absent
+            # key must render ``None`` (which HA maps to ``unknown``) rather than
+            # blanking the state. network_status is the only such component.
             assert name == "network_status", (name, sorted(component))
+            assert rendered == "None", (name, rendered)
 
     # Present keys still render their concrete value.
     populated = {
@@ -74,6 +76,7 @@ def test_value_templates_tolerate_missing_keys() -> None:
         "summation_delivered_kwh": 120076.706,
         "summation_received_kwh": 0.0,
         "last_seen": "2026-07-09T23:51:07.030554+00:00",
+        "network_status": "Rejoining",
     }
     assert _render(payload["cmps"]["power"]["value_template"], populated) == "1.073"
     assert (
@@ -83,4 +86,8 @@ def test_value_templates_tolerate_missing_keys() -> None:
     assert (
         _render(payload["cmps"]["last_seen"]["value_template"], populated)
         == "2026-07-09T23:51:07.030554+00:00"
+    )
+    assert (
+        _render(payload["cmps"]["network_status"]["value_template"], populated)
+        == "Rejoining"
     )
