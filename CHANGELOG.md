@@ -9,13 +9,16 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Fixed
 
 - Home Assistant no longer logs a `'dict object' has no attribute ...` template
-  warning on every published frame for meter fields the RAVEn / EMU-2 never
-  reports (for example `current_price`, `network_status`, `link_strength`, and
+  warning on every published frame for optional meter fields the RAVEn / EMU-2
+  never reports (`current_price`, `network_status`, `link_strength`, and
   `current_period_usage_kwh`). Because the state payload omits values the meter
-  has not sent, the generated discovery value templates now guard the lookup
-  (`{% if value_json.<key> is defined %}{{ value_json.<key> }}{% endif %}`). An
-  absent key renders to an empty string, which Home Assistant ignores for the
-  numeric-shaped sensors (leaving them `unknown`) instead of raising.
+  has not sent, the discovery templates for these optional fields now guard the
+  lookup (`{% if value_json.<key> is defined %}{{ value_json.<key> }}{% endif %}`);
+  an absent key renders to an empty string, which Home Assistant ignores for the
+  numeric-shaped sensors (leaving them `unknown`) instead of raising. Required
+  fields (`power`, `summation_delivered`, `summation_received`, `last_seen`) are
+  intentionally left unguarded so a regression that drops a core field from the
+  state schema still surfaces instead of silently degrading the entity.
 
 ## [0.1.0] - 2026-06-13
 
