@@ -4,6 +4,19 @@ All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.1] - 2026-07-09
+
+### Fixed
+
+- Home Assistant no longer logs a `'dict object' has no attribute ...` template
+  warning on every published frame for meter fields the RAVEn / EMU-2 never
+  reports (for example `current_price`, `network_status`, `link_strength`, and
+  `current_period_usage_kwh`). Because the state payload omits values the meter
+  has not sent, the generated discovery value templates now guard the lookup
+  (`value_json.<key> if value_json.<key> is defined else None`), so an absent
+  key renders to `None` and Home Assistant shows the sensor as `unknown`
+  instead of raising.
+
 ## [0.1.0] - 2026-06-13
 
 First public release. Bridges a Rainforest Automation RAVEn / EMU-2 serial

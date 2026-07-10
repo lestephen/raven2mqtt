@@ -1,5 +1,24 @@
+import jinja2
+
 from raven2mqtt.config import AppConfig, DeviceConfig, MqttConfig, SerialConfig, ServiceConfig
 from raven2mqtt.discovery import build_device_discovery_payload, discovery_topic
+
+
+def _config() -> AppConfig:
+    return AppConfig(
+        serial=SerialConfig(),
+        mqtt=MqttConfig(base_topic="raven2mqtt/emu2"),
+        service=ServiceConfig(),
+        device=DeviceConfig(id="emu2"),
+    )
+
+
+def _render(template: str, value_json: dict) -> str:
+    # Mirror Home Assistant's strict template behavior: accessing a missing key
+    # on ``value_json`` raises, which is what produces the repeated
+    # "'dict object' has no attribute ..." log warnings.
+    env = jinja2.Environment(undefined=jinja2.StrictUndefined)
+    return env.from_string(template).render(value_json=value_json)
 
 
 def test_device_discovery_payload_uses_stable_entity_ids() -> None:
@@ -18,3 +37,32 @@ def test_device_discovery_payload_uses_stable_entity_ids() -> None:
     assert payload["availability"][0]["topic"] == "raven2mqtt/emu2/status"
     assert payload["cmps"]["power"]["default_entity_id"] == "sensor.rainforest_emu_2_power"
     assert payload["cmps"]["summation_delivered"]["state_class"] == "total_increasing"
+
+
+def test_value_templates_tolerate_missing_keys() -> None:
+    # A real EMU-2 often emits only InstantaneousDemand + CurrentSummationDelivered
+    # frames, so PriceCluster / NetworkInfo / CurrentPeriodUsage fields never
+    # populate. Because the state payload omits None values, those keys are
+    # absent from every published message. The discovery value templates must
+    # tolerate that instead of raising on the missing key.
+    payload = build_device_discovery_payload(_config())
+    sparse = {
+        "power_kw": 1.073,
+        "summation_delivered_kwh": 120076.706,
+        "summation_received_kwh": 0.0,
+    }
+
+    for name, component in payload["cmps"].items():
+        template = component["value_template"]
+        # Must not raise for any component even when its key is absent.
+        rendered = _render(template, sparse)
+        key = template  # for assertion context in failures
+        if name in ("power", "summation_delivered", "summation_received"):
+            assert rendered not in ("", "None"), (name, key)
+        else:
+            # Keys the meter never sent render to None -> HA maps this to
+            # an ``unknown`` state, with no template warning.
+            assert rendered == "None", (name, rendered)
+
+    # Present keys still render their concrete value.
+    assert _render(payload["cmps"]["power"]["value_template"], sparse) == "1.073"

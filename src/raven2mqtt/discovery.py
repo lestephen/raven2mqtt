@@ -25,7 +25,14 @@ def _sensor(
         "unique_id": unique_id,
         "name": name,
         "default_entity_id": default_entity_id,
-        "value_template": f"{{{{ value_json.{key} }}}}",
+        # The state payload omits fields the meter has never reported (see
+        # ``RavenState.as_dict``), so guard against the missing key. Home
+        # Assistant maps a rendered ``None`` to an ``unknown`` state, whereas an
+        # unguarded ``value_json.<key>`` raises and logs a warning on every
+        # published frame.
+        "value_template": (
+            f"{{{{ value_json.{key} if value_json.{key} is defined else None }}}}"
+        ),
     }
     if unit is not None:
         payload["unit_of_measurement"] = unit
