@@ -17,9 +17,11 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   arrives. Every discovery value template now guards the lookup
   (`{% if value_json.<key> is defined %}{{ value_json.<key> }}{% endif %}`), so
   an absent key renders to an empty string, which Home Assistant ignores for the
-  numeric-shaped sensors (leaving them `unknown`) instead of raising. A genuine
-  state-schema regression remains observable through the availability topic and
-  the `last_seen` timestamp rather than through per-frame template errors.
+  numeric-shaped sensors (leaving them `unknown`) instead of raising. A key that
+  stops being reported therefore shows as `unknown` in Home Assistant; raven2mqtt
+  intentionally does not use per-frame template errors as a field-level health
+  signal, since the same absence occurs normally during the startup window
+  before a field's first frame arrives.
 
 ## [0.1.0] - 2026-06-13
 

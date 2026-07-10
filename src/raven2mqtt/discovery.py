@@ -32,9 +32,10 @@ def _sensor(
         # first frame arrives. Guard every lookup so a missing key renders to an
         # empty string instead of raising a ``'dict object' has no attribute ...``
         # warning on that frame. Home Assistant ignores an empty render for the
-        # numeric-shaped sensors, leaving them ``unknown``. Detecting a genuine
-        # schema regression is handled out of band by the availability topic and
-        # the ``last_seen`` timestamp, not by per-frame template errors.
+        # numeric-shaped sensors, leaving them ``unknown``. A field that stops
+        # being reported shows as ``unknown`` in HA; the same absence happens
+        # normally during startup, so per-frame template errors are not used as a
+        # field-level health signal.
         "value_template": (
             f"{{% if value_json.{key} is defined %}}{{{{ value_json.{key} }}}}{{% endif %}}"
         ),
