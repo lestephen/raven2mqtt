@@ -39,19 +39,8 @@ def test_device_discovery_payload_uses_stable_entity_ids() -> None:
     assert payload["cmps"]["summation_delivered"]["state_class"] == "total_increasing"
 
 
-# Required fields are published on every frame (see ``RavenState.update``);
-# optional fields come from frames many meters never emit (price, network info,
-# current-period usage) and so are absent from every message on those meters.
-REQUIRED_COMPONENTS = {"power", "summation_delivered", "summation_received", "last_seen"}
-OPTIONAL_COMPONENTS = {
-    "current_period_usage",
-    "current_price",
-    "link_strength",
-    "network_status",
-}
-
 # Home Assistant ignores an empty rendered value (leaving the entity unchanged /
-# unknown) only for sensors that declare a numeric shape via one of these keys.
+# unknown) for sensors that declare a numeric shape via one of these keys.
 NUMERIC_SHAPE = {
     "device_class",
     "state_class",
@@ -60,56 +49,38 @@ NUMERIC_SHAPE = {
 }
 
 
-def test_optional_value_templates_tolerate_missing_keys() -> None:
-    # A real EMU-2 emits only InstantaneousDemand + CurrentSummationDelivered
-    # frames, so the price / network / current-period fields never populate and
-    # ``RavenState.as_dict`` omits them from every published message. Their
-    # templates must render to an empty string instead of raising the
-    # "'dict object' has no attribute ..." warning on every frame.
+def test_value_templates_tolerate_missing_keys() -> None:
+    # ``RavenState.as_dict`` publishes only the fields seen so far, so any key
+    # can be absent from a given state message: optional fields the meter never
+    # emits (price / network / current-period) and even core fields during the
+    # startup window before their first frame arrives. Every value template must
+    # render to an empty string for an absent key instead of raising the
+    # "'dict object' has no attribute ..." warning.
     payload = build_device_discovery_payload(_config())
-    # Mirrors the fields a demand+summation-only meter actually publishes.
-    sparse = {
+
+    # Absent everywhere: an empty payload must never raise for any component.
+    for name, component in payload["cmps"].items():
+        rendered = _render(component["value_template"], {})
+        assert rendered == "", (name, rendered)
+        # An empty string is only safely ignored by HA for numeric-shaped
+        # sensors; the sole non-numeric component is the network_status
+        # diagnostic text sensor, for which an empty state is benign.
+        if not NUMERIC_SHAPE.intersection(component):
+            assert name == "network_status", (name, sorted(component))
+
+    # Present keys still render their concrete value.
+    populated = {
         "power_kw": 1.073,
         "summation_delivered_kwh": 120076.706,
         "summation_received_kwh": 0.0,
         "last_seen": "2026-07-09T23:51:07.030554+00:00",
     }
-
-    assert set(payload["cmps"]) == REQUIRED_COMPONENTS | OPTIONAL_COMPONENTS
-
-    for name in OPTIONAL_COMPONENTS:
-        component = payload["cmps"][name]
-        rendered = _render(component["value_template"], sparse)
-        # Absent key renders empty: never raises, never leaks the raw expression.
-        assert rendered == "", (name, rendered)
-        # An empty string is only safely ignored by HA for numeric-shaped
-        # sensors; the sole non-numeric optional component is the network_status
-        # diagnostic text sensor, for which an empty state is benign.
-        if not NUMERIC_SHAPE.intersection(component):
-            assert name == "network_status", (name, sorted(component))
-
-    # Required fields still render their concrete value when present.
-    assert _render(payload["cmps"]["power"]["value_template"], sparse) == "1.073"
+    assert _render(payload["cmps"]["power"]["value_template"], populated) == "1.073"
     assert (
-        _render(payload["cmps"]["summation_delivered"]["value_template"], sparse)
+        _render(payload["cmps"]["summation_delivered"]["value_template"], populated)
         == "120076.706"
     )
-
-
-def test_required_value_templates_stay_unguarded() -> None:
-    # Required fields are unguarded on purpose: if a regression ever drops a core
-    # field from the state schema, Home Assistant should surface it rather than
-    # silently degrade the entity. Under HA's strict rendering an absent required
-    # key raises (which is what logs the visible warning), so we assert the
-    # guard was NOT applied to these templates.
-    payload = build_device_discovery_payload(_config())
-
-    for name in REQUIRED_COMPONENTS:
-        template = payload["cmps"][name]["value_template"]
-        assert "is defined" not in template, (name, template)
-        try:
-            _render(template, {})
-        except jinja2.UndefinedError:
-            pass
-        else:  # pragma: no cover - a required template that swallowed the miss
-            raise AssertionError(f"{name} unexpectedly tolerated a missing key")
+    assert (
+        _render(payload["cmps"]["last_seen"]["value_template"], populated)
+        == "2026-07-09T23:51:07.030554+00:00"
+    )

@@ -19,32 +19,25 @@ def _sensor(
     state_class: str | None = None,
     entity_category: str | None = None,
     suggested_display_precision: int | None = None,
-    optional: bool = False,
 ) -> dict[str, Any]:
-    if optional:
-        # ``optional`` fields come from RAVEn frames many meters never emit
-        # (price, network info, current-period usage). ``RavenState.as_dict``
-        # omits values the meter has not sent, so guard the lookup: when the key
-        # is absent the template renders to an empty string, which Home Assistant
-        # ignores for sensors that declare a numeric shape (``device_class`` /
-        # ``state_class`` / ``unit_of_measurement`` / ``suggested_display_precision``),
-        # leaving the entity ``unknown`` instead of logging a
-        # ``'dict object' has no attribute ...`` warning on every published frame.
-        value_template = (
-            f"{{% if value_json.{key} is defined %}}{{{{ value_json.{key} }}}}{{% endif %}}"
-        )
-    else:
-        # Required fields (power, summation, last_seen) are published on every
-        # frame; leaving them unguarded preserves a visible failure signal if a
-        # regression ever drops a core field from the state schema.
-        value_template = f"{{{{ value_json.{key} }}}}"
-
     payload: dict[str, Any] = {
         "p": "sensor",
         "unique_id": unique_id,
         "name": name,
         "default_entity_id": default_entity_id,
-        "value_template": value_template,
+        # ``RavenState.as_dict`` publishes only the fields the meter has reported
+        # so far, so ANY key can be absent from a given state message: optional
+        # fields the meter never emits (price, network info, current-period
+        # usage), and even core fields during the startup window before their
+        # first frame arrives. Guard every lookup so a missing key renders to an
+        # empty string instead of raising a ``'dict object' has no attribute ...``
+        # warning on that frame. Home Assistant ignores an empty render for the
+        # numeric-shaped sensors, leaving them ``unknown``. Detecting a genuine
+        # schema regression is handled out of band by the availability topic and
+        # the ``last_seen`` timestamp, not by per-frame template errors.
+        "value_template": (
+            f"{{% if value_json.{key} is defined %}}{{{{ value_json.{key} }}}}{{% endif %}}"
+        ),
     }
     if unit is not None:
         payload["unit_of_measurement"] = unit
@@ -125,7 +118,6 @@ def build_device_discovery_payload(config: AppConfig) -> dict[str, Any]:
                 unique_id=f"{base_unique}_current_period_usage",
                 name="Current period usage",
                 key="current_period_usage_kwh",
-                optional=True,
                 default_entity_id=f"sensor.{entity_prefix}_current_period_usage",
                 unit="kWh",
                 device_class="energy",
@@ -136,7 +128,6 @@ def build_device_discovery_payload(config: AppConfig) -> dict[str, Any]:
                 unique_id=f"{base_unique}_current_price",
                 name="Current price",
                 key="current_price",
-                optional=True,
                 default_entity_id=f"sensor.{entity_prefix}_current_price",
                 state_class="measurement",
                 suggested_display_precision=4,
@@ -145,7 +136,6 @@ def build_device_discovery_payload(config: AppConfig) -> dict[str, Any]:
                 unique_id=f"{base_unique}_link_strength",
                 name="Link strength",
                 key="link_strength",
-                optional=True,
                 default_entity_id=f"sensor.{entity_prefix}_link_strength",
                 unit="%",
                 entity_category="diagnostic",
@@ -154,7 +144,6 @@ def build_device_discovery_payload(config: AppConfig) -> dict[str, Any]:
                 unique_id=f"{base_unique}_network_status",
                 name="Network status",
                 key="network_status",
-                optional=True,
                 default_entity_id=f"sensor.{entity_prefix}_network_status",
                 entity_category="diagnostic",
             ),
