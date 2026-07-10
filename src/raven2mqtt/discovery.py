@@ -25,7 +25,20 @@ def _sensor(
         "unique_id": unique_id,
         "name": name,
         "default_entity_id": default_entity_id,
-        "value_template": f"{{{{ value_json.{key} }}}}",
+        # ``RavenState.as_dict`` publishes only the fields the meter has reported
+        # so far, so ANY key can be absent from a given state message: optional
+        # fields the meter never emits (price, network info, current-period
+        # usage), and even core fields during the startup window before their
+        # first frame arrives. Guard every lookup so a missing key renders to an
+        # empty string instead of raising a ``'dict object' has no attribute ...``
+        # warning on that frame. Home Assistant ignores an empty render for the
+        # numeric-shaped sensors, leaving them ``unknown``. A field that stops
+        # being reported shows as ``unknown`` in HA; the same absence happens
+        # normally during startup, so per-frame template errors are not used as a
+        # field-level health signal.
+        "value_template": (
+            f"{{% if value_json.{key} is defined %}}{{{{ value_json.{key} }}}}{{% endif %}}"
+        ),
     }
     if unit is not None:
         payload["unit_of_measurement"] = unit

@@ -4,6 +4,25 @@ All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.1] - 2026-07-09
+
+### Fixed
+
+- Home Assistant no longer logs a `'dict object' has no attribute ...` template
+  warning for meter fields that are absent from a published state message. The
+  state payload only carries the fields the meter has reported so far, so any
+  key can be missing: optional fields the RAVEn / EMU-2 never emits
+  (`current_price`, `network_status`, `link_strength`, `current_period_usage_kwh`)
+  and even core fields during the startup window before their first frame
+  arrives. Every discovery value template now guards the lookup
+  (`{% if value_json.<key> is defined %}{{ value_json.<key> }}{% endif %}`), so
+  an absent key renders to an empty string, which Home Assistant ignores for the
+  numeric-shaped sensors (leaving them `unknown`) instead of raising. A key that
+  stops being reported therefore shows as `unknown` in Home Assistant; raven2mqtt
+  intentionally does not use per-frame template errors as a field-level health
+  signal, since the same absence occurs normally during the startup window
+  before a field's first frame arrives.
+
 ## [0.1.0] - 2026-06-13
 
 First public release. Bridges a Rainforest Automation RAVEn / EMU-2 serial
