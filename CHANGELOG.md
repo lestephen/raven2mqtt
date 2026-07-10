@@ -13,9 +13,9 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   reports (for example `current_price`, `network_status`, `link_strength`, and
   `current_period_usage_kwh`). Because the state payload omits values the meter
   has not sent, the generated discovery value templates now guard the lookup
-  (`value_json.<key> if value_json.<key> is defined else None`), so an absent
-  key renders to `None` and Home Assistant shows the sensor as `unknown`
-  instead of raising.
+  (`{% if value_json.<key> is defined %}{{ value_json.<key> }}{% endif %}`). An
+  absent key renders to an empty string, which Home Assistant ignores for the
+  numeric-shaped sensors (leaving them `unknown`) instead of raising.
 
 ## [0.1.0] - 2026-06-13
 

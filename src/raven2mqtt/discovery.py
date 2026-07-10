@@ -26,12 +26,14 @@ def _sensor(
         "name": name,
         "default_entity_id": default_entity_id,
         # The state payload omits fields the meter has never reported (see
-        # ``RavenState.as_dict``), so guard against the missing key. Home
-        # Assistant maps a rendered ``None`` to an ``unknown`` state, whereas an
-        # unguarded ``value_json.<key>`` raises and logs a warning on every
-        # published frame.
+        # ``RavenState.as_dict``), so guard against the missing key. When the key
+        # is absent the template renders to an empty string, which Home Assistant
+        # ignores for sensors that declare a numeric shape (``device_class`` /
+        # ``state_class`` / ``unit_of_measurement`` / ``suggested_display_precision``),
+        # leaving the entity ``unknown`` rather than raising and logging a
+        # ``'dict object' has no attribute ...`` warning on every published frame.
         "value_template": (
-            f"{{{{ value_json.{key} if value_json.{key} is defined else None }}}}"
+            f"{{% if value_json.{key} is defined %}}{{{{ value_json.{key} }}}}{{% endif %}}"
         ),
     }
     if unit is not None:

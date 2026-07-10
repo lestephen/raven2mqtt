@@ -52,17 +52,36 @@ def test_value_templates_tolerate_missing_keys() -> None:
         "summation_received_kwh": 0.0,
     }
 
+    # Home Assistant ignores an empty rendered value (leaving the entity
+    # unchanged / unknown) for sensors that declare a numeric shape via any of
+    # these keys, so an absent field must not corrupt their state.
+    numeric_shape = {
+        "device_class",
+        "state_class",
+        "unit_of_measurement",
+        "suggested_display_precision",
+    }
+
+    # Components populated by the sparse payload above.
+    populated = {"power", "summation_delivered", "summation_received"}
+
     for name, component in payload["cmps"].items():
         template = component["value_template"]
-        # Must not raise for any component even when its key is absent.
-        rendered = _render(template, sparse)
-        key = template  # for assertion context in failures
-        if name in ("power", "summation_delivered", "summation_received"):
-            assert rendered not in ("", "None"), (name, key)
-        else:
-            # Keys the meter never sent render to None -> HA maps this to
-            # an ``unknown`` state, with no template warning.
-            assert rendered == "None", (name, rendered)
+        rendered_absent = _render(template, sparse)
+        if name in populated:
+            continue
+        # Absent key must render to an empty string, never raise and never leak
+        # the raw ``value_json.<key>`` expression.
+        assert rendered_absent == "", (name, rendered_absent)
+        # An empty string is only safely ignored by HA when the sensor is
+        # numeric-shaped; the sole non-numeric component (network_status) is a
+        # diagnostic text sensor for which an empty state is benign.
+        if not numeric_shape.intersection(component):
+            assert name == "network_status", (name, sorted(component))
 
     # Present keys still render their concrete value.
     assert _render(payload["cmps"]["power"]["value_template"], sparse) == "1.073"
+    assert (
+        _render(payload["cmps"]["summation_delivered"]["value_template"], sparse)
+        == "120076.706"
+    )
