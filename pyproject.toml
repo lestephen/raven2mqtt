@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "raven2mqtt"
-version = "0.1.1"
+version = "0.1.2"
 description = "Bridge Rainforest RAVEn / EMU-2 serial XML streams to MQTT and Home Assistant discovery"
 readme = "README.md"
 requires-python = ">=3.11"
